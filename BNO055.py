@@ -1,4 +1,5 @@
-import smbus
+#import smbus #not availible on IoT2000
+import mraa #i2c read/write in the IoT2000 world
 import time
 import struct
 
@@ -185,15 +186,16 @@ class BNO055:
 
 
 	def __init__(self, sensorId=-1, address=0x28):
-		self._sensorId = sensorId
-		self._address = address
-		self._mode = BNO055.OPERATION_MODE_NDOF
+		self._sensorId	= sensorId
+		self._address	= address
+		self._mode		= BNO055.OPERATION_MODE_NDOF
 
 
 	def begin(self, mode=None):
 		if mode is None: mode = BNO055.OPERATION_MODE_NDOF
 		# Open I2C bus
-		self._bus = smbus.SMBus(1)
+		self._i2c			= mraa.I2c(0)
+		self._i2c.address(self._address)
 
 		# Make sure we have the right device
 		if self.readBytes(BNO055.BNO055_CHIP_ID_ADDR)[0] != BNO055.BNO055_ID:
@@ -265,7 +267,7 @@ class BNO055:
 		xyz = (struct.unpack('hhh', ''.join(struct.pack('BBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]))))
 		if vectorType == BNO055.VECTOR_MAGNETOMETER:	scalingFactor = 16.0
 		elif vectorType == BNO055.VECTOR_GYROSCOPE:	scalingFactor = 900.0
-		elif vectorType == BNO055.VECTOR_EULER: 		scalingFactor = 16.0
+		elif vectorType == BNO055.VECTOR_EULER:		scalingFactor = 16.0
 		elif vectorType == BNO055.VECTOR_GRAVITY:	scalingFactor = 100.0
 		else:											scalingFactor = 1.0
 		return tuple([i/scalingFactor for i in xyz])
@@ -276,14 +278,15 @@ class BNO055:
 		return tuple([i * (1.0 / (1 << 14)) for i in wxyz])
 
 	def readBytes(self, register, numBytes=1):
-		return self._bus.read_i2c_block_data(self._address, register, numBytes)
+		#return self._bus.read_i2c_block_data(self._address, register, numBytes)
+		return self._i2c.readBytesReg(register, numBytes)
 
 	def writeBytes(self, register, byteVals):
-		return self._bus.write_i2c_block_data(self._address, register, byteVals)
-
+		#return self._bus.write_i2c_block_data(self._address, register, byteVals)
+		return self._i2c.writeReg(register, byteVals[0])
 
 if __name__ == '__main__':
-	bno = BNO055()
+	bno = BNO055() #call __init__()
 	if bno.begin() is not True:
 		print "Error initializing device"
 		exit()
