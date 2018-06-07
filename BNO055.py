@@ -4,9 +4,13 @@ import time
 import struct
 
 class BNO055:
+	# I2C addresses
 	BNO055_ADDRESS_A					= 0x28
 	BNO055_ADDRESS_B					= 0x29
 	BNO055_ID							= 0xA0
+
+	# Page id register definition
+	BNO055_PAGE_ID_ADDR 				= 0X07
 
 	# Power mode settings
 	POWER_MODE_NORMAL					= 0X00
@@ -197,6 +201,15 @@ class BNO055:
 		self._i2c			= mraa.I2c(0)
 		self._i2c.address(self._address)
 
+		try:
+			self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0x0)
+		except IOError:
+            # Swallow an IOError that might be raised by an I2C issue.  Only do
+            # this for this very first command to help get the BNO and board's
+            # I2C into a clear state ready to accept the next commands.
+			pass
+
+
 		# Make sure we have the right device
 		if self.readBytes(BNO055.BNO055_CHIP_ID_ADDR)[0] != BNO055.BNO055_ID:
 			time.sleep(1)	# Wait for the device to boot up
@@ -207,18 +220,18 @@ class BNO055:
 		self.setMode(BNO055.OPERATION_MODE_CONFIG)
 
 		# Trigger a reset and wait for the device to boot up again
-		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, [0x20])
+		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, 0x20)
 		time.sleep(1)
 		while self.readBytes(BNO055.BNO055_CHIP_ID_ADDR)[0] != BNO055.BNO055_ID:
 			time.sleep(0.01)
 		time.sleep(0.05)
 
 		# Set to normal power mode
-		self.writeBytes(BNO055.BNO055_PWR_MODE_ADDR, [BNO055.POWER_MODE_NORMAL])
+		self.writeBytes(BNO055.BNO055_PWR_MODE_ADDR, BNO055.POWER_MODE_NORMAL)
 		time.sleep(0.01)
 
-		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, [0])
-		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, [0])
+		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0)
+		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, 0)
 		time.sleep(0.01)
 
 		# Set the requested mode
@@ -229,21 +242,21 @@ class BNO055:
 
 	def setMode(self, mode):
 		self._mode = mode
-		self.writeBytes(BNO055.BNO055_OPR_MODE_ADDR, [self._mode])
+		self.writeBytes(BNO055.BNO055_OPR_MODE_ADDR, self._mode)
 		time.sleep(0.03)
 
 	def setExternalCrystalUse(self, useExternalCrystal = True):
 		prevMode = self._mode
 		self.setMode(BNO055.OPERATION_MODE_CONFIG)
 		time.sleep(0.025)
-		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, [0])
-		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, [0x80] if useExternalCrystal else [0])
+		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0)
+		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, 0x80 if useExternalCrystal else 0)
 		time.sleep(0.01)
 		self.setMode(prevMode)
 		time.sleep(0.02)
 
 	def getSystemStatus(self):
-		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, [0])
+		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0)
 		(sys_stat, sys_err) = self.readBytes(BNO055.BNO055_SYS_STAT_ADDR, 2)
 		self_test = self.readBytes(BNO055.BNO055_SELFTEST_RESULT_ADDR)[0]
 		return (sys_stat, self_test, sys_err)
@@ -283,7 +296,7 @@ class BNO055:
 
 	def writeBytes(self, register, byteVals):
 		#return self._bus.write_i2c_block_data(self._address, register, byteVals)
-		return self._i2c.writeReg(register, byteVals[0])
+		return self._i2c.writeReg(register, byteVals)
 
 if __name__ == '__main__':
 	bno = BNO055() #call __init__()
