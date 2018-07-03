@@ -201,6 +201,9 @@ class BNO055:
 		self._i2c			= mraa.I2c(0)
 		self._i2c.address(self._address)
 
+		# First send a thow-away command and ignore any response or I2C errors
+        # just to make sure the BNO is in a good state and ready to accept
+        # commands (this seems to be necessary after a hard power down).
 		try:
 			self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0x0)
 		except IOError:
@@ -269,6 +272,13 @@ class BNO055:
 		return (accel_rev, mag_rev, gyro_rev, sw_rev, bl_rev)
 
 	def getCalibration(self):
+		"""Read the calibration status of the sensors and return a 4 tuple with
+        calibration status as follows:
+          - System, 3=fully calibrated, 0=not calibrated
+          - Gyroscope, 3=fully calibrated, 0=not calibrated
+          - Accelerometer, 3=fully calibrated, 0=not calibrated
+          - Magnetometer, 3=fully calibrated, 0=not calibrated
+        """
 		calData = self.readBytes(BNO055.BNO055_CALIB_STAT_ADDR)[0]
 		return (calData >> 6 & 0x03, calData >> 4 & 0x03, calData >> 2 & 0x03, calData & 0x03)
 
@@ -290,6 +300,14 @@ class BNO055:
 		wxyz = (struct.unpack('hhhh', ''.join(struct.pack('BBBBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]))))
 		return tuple([i * (1.0 / (1 << 14)) for i in wxyz])
 
+	def read_gravity(self):
+		"""Return the current gravity acceleration reading as a tuple of X, Y, Z
+		values in meters/second^2.
+		"""
+		x, y, z = self.readBytes(BNO055_GRAVITY_DATA_X_LSB_ADDR, 3)
+		return (x/100.0, y/100.0, z/100.0)
+
+
 	def readBytes(self, register, numBytes=1):
 		#return self._bus.read_i2c_block_data(self._address, register, numBytes)
 		return self._i2c.readBytesReg(register, numBytes)
@@ -306,6 +324,5 @@ if __name__ == '__main__':
 	time.sleep(1)
 	bno.setExternalCrystalUse(True)
 	while True:
-		print bno.getVector(BNO055.VECTOR_EULER)
+		print bno.getVector(BNO055.VECTOR_GRAVITY)
 		time.sleep(0.01)
-
