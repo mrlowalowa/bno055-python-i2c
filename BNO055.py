@@ -234,6 +234,12 @@ class BNO055:
 		time.sleep(0.01)
 
 		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0)
+		
+		#####new from ros imu driver#####
+		self.writeBytes(BNO055.BNO055_UNIT_SEL_ADDR, 0x82) #Android fusion data, C, RadianPerS, m/s2 (not mg)
+		self.writeBytes(BNO055.BNO055_AXIS_MAP_CONFIG_ADDR, 0x21) #switch x and y axis
+		self.writeBytes(BNO055.BNO055_AXIS_MAP_SIGN_ADDR, 0x0)
+		#####end new####
 		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, 0)
 		time.sleep(0.01)
 
