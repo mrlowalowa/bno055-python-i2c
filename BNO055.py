@@ -293,7 +293,7 @@ class BNO055:
 
 	def getVector(self, vectorType):
 		buf = self.readBytes(vectorType, 6)
-		xyz = (struct.unpack('hhh', ''.join(struct.pack('BBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]))))
+		xyz = (struct.unpack('hhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])))))))
 		if vectorType == BNO055.VECTOR_MAGNETOMETER:	scalingFactor = 16.0
 		elif vectorType == BNO055.VECTOR_GYROSCOPE:	scalingFactor = 900.0
 		elif vectorType == BNO055.VECTOR_EULER:		scalingFactor = 16.0
@@ -303,7 +303,7 @@ class BNO055:
 
 	def getQuat(self):
 		buf = self.readBytes(BNO055.BNO055_QUATERNION_DATA_W_LSB_ADDR, 8)
-		wxyz = (struct.unpack('hhhh', ''.join(struct.pack('BBBBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]))))
+		wxyz = (struct.unpack('hhhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7])))))))
 		return tuple([i * (1.0 / (1 << 14)) for i in wxyz])
 
 	def read_gravity(self):
@@ -325,10 +325,15 @@ class BNO055:
 if __name__ == '__main__':
 	bno = BNO055() #call __init__()
 	if bno.begin() is not True:
-		print "Error initializing device"
+		print ("Error initializing device")
 		exit()
 	time.sleep(1)
 	bno.setExternalCrystalUse(True)
 	while True:
-		print bno.getVector(BNO055.VECTOR_GRAVITY)
+		xyz = bno.getVector(BNO055.VECTOR_GRAVITY)
+		x = xyz[0]
+		y = xyz[1]
+		z = xyz[2]
+
+		print (x, y, z)
 		time.sleep(0.01)
