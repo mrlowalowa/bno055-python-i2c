@@ -236,9 +236,9 @@ class BNO055:
 		self.writeBytes(BNO055.BNO055_PAGE_ID_ADDR, 0)
 		
 		#####new from ros imu driver#####
-		self.writeBytes(BNO055.BNO055_UNIT_SEL_ADDR, 0x82) #Android fusion data, C, RadianPerS, m/s2 (not mg)
-		self.writeBytes(BNO055.BNO055_AXIS_MAP_CONFIG_ADDR, 0x21) #switch x and y axis
-		self.writeBytes(BNO055.BNO055_AXIS_MAP_SIGN_ADDR, 0x0)
+		#self.writeBytes(BNO055.BNO055_UNIT_SEL_ADDR, 0x82) #Android fusion data, C, RadianPerS, m/s2 (not mg)
+		#self.writeBytes(BNO055.BNO055_AXIS_MAP_CONFIG_ADDR, 0x21) #switch x and y axis
+		#self.writeBytes(BNO055.BNO055_AXIS_MAP_SIGN_ADDR, 0x0)
 		#####end new####
 		self.writeBytes(BNO055.BNO055_SYS_TRIGGER_ADDR, 0)
 		time.sleep(0.01)
@@ -293,7 +293,12 @@ class BNO055:
 
 	def getVector(self, vectorType):
 		buf = self.readBytes(vectorType, 6)
-		xyz = (struct.unpack('hhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])))))))
+		# xyz = (struct.unpack('hhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])))))))
+		xyz = ()
+		xyz += (int.from_bytes(struct.pack('BB', buf[0], buf[1]), byteorder='big', signed=True),)
+		xyz += (int.from_bytes(struct.pack('BB', buf[2], buf[3]), byteorder='big', signed=True),)
+		xyz += (int.from_bytes(struct.pack('BB', buf[4], buf[5]), byteorder='big', signed=True),)
+
 		if vectorType == BNO055.VECTOR_MAGNETOMETER:	scalingFactor = 16.0
 		elif vectorType == BNO055.VECTOR_GYROSCOPE:	scalingFactor = 900.0
 		elif vectorType == BNO055.VECTOR_EULER:		scalingFactor = 16.0
@@ -303,14 +308,19 @@ class BNO055:
 
 	def getQuat(self):
 		buf = self.readBytes(BNO055.BNO055_QUATERNION_DATA_W_LSB_ADDR, 8)
-		wxyz = (struct.unpack('hhhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7])))))))
+		# wxyz = (struct.unpack('hhhh', bytes(str.encode(''.join(map(str, struct.pack('BBBBBBBB', buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7])))))))
+		wxyz = ()
+		wxyz += (int.from_bytes(struct.pack('BB', buf[0], buf[1]), byteorder='big', signed=True),)
+		wxyz += (int.from_bytes(struct.pack('BB', buf[2], buf[3]), byteorder='big', signed=True),)
+		wxyz += (int.from_bytes(struct.pack('BB', buf[4], buf[5]), byteorder='big', signed=True),)
+		wxyz += (int.from_bytes(struct.pack('BB', buf[6], buf[7]), byteorder='big', signed=True),)
 		return tuple([i * (1.0 / (1 << 14)) for i in wxyz])
 
 	def read_gravity(self):
 		"""Return the current gravity acceleration reading as a tuple of X, Y, Z
 		values in meters/second^2.
 		"""
-		x, y, z = self.readBytes(BNO055_GRAVITY_DATA_X_LSB_ADDR, 3)
+		x, y, z = self.readBytes(BNO055.BNO055_GRAVITY_DATA_X_LSB_ADDR, 3)
 		return (x/100.0, y/100.0, z/100.0)
 
 
@@ -330,7 +340,9 @@ if __name__ == '__main__':
 	time.sleep(1)
 	bno.setExternalCrystalUse(True)
 	while True:
-		xyz = bno.getVector(BNO055.VECTOR_GRAVITY)
+		xyz = bno.getVector(BNO055.VECTOR_ACCELEROMETER)
+		# xyz = bno.read_gravity()
+
 		x = xyz[0]
 		y = xyz[1]
 		z = xyz[2]
